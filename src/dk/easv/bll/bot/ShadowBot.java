@@ -1,6 +1,5 @@
 package dk.easv.bll.bot;
 
-import dk.easv.bll.bot.IBot;
 import dk.easv.bll.game.IGameState;
 import dk.easv.bll.move.IMove;
 
@@ -9,8 +8,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-public class ShadowMoneyWizardGangBot implements IBot {
-    private static final String BOTNAME = "ShadowMoneyWizardGangBot";
+public class ShadowBot implements IBot {
+    private static final String BOTNAME = "ShadowBot";
 
     @Override
     public IMove doMove(IGameState state) {
