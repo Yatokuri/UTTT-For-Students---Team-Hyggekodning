@@ -21,7 +21,14 @@ public class ShadowBot implements IBot {
             return winMoves.get(0);
         }
 
-        // If there are no winning moves, try to choose a corner
+        // If there are no winning moves, try to choose corners close to each other
+        List<IMove> closeCorners = getCloseCorners(state);
+        if (!closeCorners.isEmpty()) {
+            Collections.shuffle(closeCorners); // Shuffle the list of close corners
+            return closeCorners.get(0); // Return the first (randomized) close corner
+        }
+
+        // If no close corners are available, try to choose any corner
         List<IMove> corners = getCorners(state);
         if (!corners.isEmpty()) {
             Collections.shuffle(corners); // Shuffle the list of corners
@@ -52,6 +59,31 @@ public class ShadowBot implements IBot {
         int x = move.getX();
         int y = move.getY();
         return (x == 0 || x == 2) && (y == 0 || y == 2);
+    }
+
+    // Get available corner moves that are close to each other
+    private List<IMove> getCloseCorners(IGameState state) {
+        List<IMove> avail = getCorners(state);
+        List<IMove> closeCorners = new ArrayList<>();
+
+        // Calculate Manhattan distance between each pair of corners
+        for (int i = 0; i < avail.size(); i++) {
+            IMove move1 = avail.get(i);
+            for (int j = i + 1; j < avail.size(); j++) {
+                IMove move2 = avail.get(j);
+                if (manhattanDistance(move1, move2) <= 2) { // Define the threshold for closeness
+                    closeCorners.add(move1);
+                    closeCorners.add(move2);
+                }
+            }
+        }
+
+        return closeCorners;
+    }
+
+    // Calculate Manhattan distance between two moves
+    private int manhattanDistance(IMove move1, IMove move2) {
+        return Math.abs(move1.getX() - move2.getX()) + Math.abs(move1.getY() - move2.getY());
     }
 
     // Check if a move is winning
