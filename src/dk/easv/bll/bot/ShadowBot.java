@@ -1,12 +1,13 @@
 package dk.easv.bll.bot;
 
+import dk.easv.bll.bot.IBot;
 import dk.easv.bll.game.IGameState;
 import dk.easv.bll.move.IMove;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 
 public class ShadowBot implements IBot {
     private static final String BOTNAME = "ShadowBot";
@@ -17,10 +18,40 @@ public class ShadowBot implements IBot {
         if (!winMoves.isEmpty())
             return winMoves.get(0);
 
-        // If there are no winning moves, make a random move
+        // If there are no winning moves, try to choose a corner
+        List<IMove> corners = getCorners(state);
+        if (!corners.isEmpty()) {
+            Collections.shuffle(corners); // Shuffle the list of corners
+            return corners.get(0); // Return the first (randomized) corner
+        }
+
+        // If no corners are available, make a random move
         List<IMove> avail = state.getField().getAvailableMoves();
-        Random random = new Random();
-        return avail.get(random.nextInt(avail.size()));
+        return avail.get(0); // Fallback to the first available move
+    }
+
+    // Get available corner moves
+    private List<IMove> getCorners(IGameState state) {
+        List<IMove> avail = state.getField().getAvailableMoves();
+
+        List<IMove> corners = new ArrayList<>();
+        for (IMove move : avail) {
+            if (isCorner(move))
+                corners.add(move);
+        }
+
+        // Shuffle the list of corners
+        Collections.shuffle(corners);
+
+        return corners;
+    }
+
+
+    // Check if a move is a corner move
+    private boolean isCorner(IMove move) {
+        int x = move.getX();
+        int y = move.getY();
+        return (x == 0 || x == 2) && (y == 0 || y == 2);
     }
 
     // Check if a move is winning
