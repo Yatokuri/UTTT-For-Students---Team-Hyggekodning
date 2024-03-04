@@ -8,15 +8,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 public class ShadowBot implements IBot {
     private static final String BOTNAME = "ShadowBot";
+    private final Random random = new Random();
 
     @Override
     public IMove doMove(IGameState state) {
         List<IMove> winMoves = getWinningMoves(state);
-        if (!winMoves.isEmpty())
+        if (!winMoves.isEmpty()) {
             return winMoves.get(0);
+        }
 
         // If there are no winning moves, try to choose a corner
         List<IMove> corners = getCorners(state);
@@ -27,7 +30,7 @@ public class ShadowBot implements IBot {
 
         // If no corners are available, make a random move
         List<IMove> avail = state.getField().getAvailableMoves();
-        return avail.get(0); // Fallback to the first available move
+        return avail.get(random.nextInt(avail.size())); // Return a random move
     }
 
     // Get available corner moves
@@ -36,16 +39,13 @@ public class ShadowBot implements IBot {
 
         List<IMove> corners = new ArrayList<>();
         for (IMove move : avail) {
-            if (isCorner(move))
+            if (isCorner(move)) {
                 corners.add(move);
+            }
         }
-
-        // Shuffle the list of corners
-        Collections.shuffle(corners);
 
         return corners;
     }
-
 
     // Check if a move is a corner move
     private boolean isCorner(IMove move) {
@@ -73,15 +73,17 @@ public class ShadowBot implements IBot {
     // Compile a list of all available winning moves
     private List<IMove> getWinningMoves(IGameState state) {
         String player = "1";
-        if (state.getMoveNumber() % 2 == 0)
+        if (state.getMoveNumber() % 2 == 0) {
             player = "0";
+        }
 
         List<IMove> avail = state.getField().getAvailableMoves();
 
         List<IMove> winningMoves = new ArrayList<>();
         for (IMove move : avail) {
-            if (isWinningMove(state, move, player))
+            if (isWinningMove(state, move, player)) {
                 winningMoves.add(move);
+            }
         }
         return winningMoves;
     }
