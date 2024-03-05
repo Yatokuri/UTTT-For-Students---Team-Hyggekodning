@@ -1,6 +1,5 @@
 package dk.easv.bll.bot;
 
-import dk.easv.bll.field.IField;
 import dk.easv.bll.game.IGameState;
 import dk.easv.bll.move.IMove;
 
@@ -15,15 +14,15 @@ public class HyggeBot1000 implements IBot {
     public IMove doMove(IGameState state) {
         List<IMove> winningMoves = findWinningMoves(state, getHyggeBot(state));
         List<IMove> opponentWinningMoves = findWinningMoves(state, getOpponentBot(state));
-        
-        if (!opponentWinningMoves.isEmpty()) {
-            return opponentWinningMoves.getFirst();
-        }
 
         if (!winningMoves.isEmpty()) {
             return winningMoves.get(random.nextInt(winningMoves.size()));
         }
 
+        if (!opponentWinningMoves.isEmpty()) {
+            return opponentWinningMoves.getFirst();
+        }
+        
         List<IMove> availableMoves = state.getField().getAvailableMoves();
         if (!availableMoves.isEmpty()) {
             return availableMoves.get(random.nextInt(availableMoves.size()));
