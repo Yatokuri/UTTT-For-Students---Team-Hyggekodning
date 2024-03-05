@@ -44,10 +44,6 @@ public class HyggeBot1000 implements IBot {
         return winningMoves;
     }
 
-    private String getHyggeBot(IGameState state) {return state.getMoveNumber() % 2 == 0 ? "0" : "1";}
-
-    private String getOpponentBot(IGameState state) {return getHyggeBot(state).equals("0") ? "1" : "0";}
-
     private boolean isWinningMove(IGameState state, IMove move, String player) {
         String[][] clonedBoard = cloneBoard(state.getField().getBoard());
         int x = move.getX();
@@ -74,5 +70,9 @@ public class HyggeBot1000 implements IBot {
         }
         return clonedBoard;
     }
+    private String getHyggeBot(IGameState state) {return state.getMoveNumber() % 2 == 0 ? "0" : "1";}
+
+    private String getOpponentBot(IGameState state) {return getHyggeBot(state).equals("0") ? "1" : "0";}
+
     public String getBotName() {return BOT_NAME;}
 }
