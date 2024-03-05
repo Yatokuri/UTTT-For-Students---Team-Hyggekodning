@@ -4,6 +4,7 @@ import dk.easv.bll.game.IGameState;
 import dk.easv.bll.move.IMove;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -22,8 +23,21 @@ public class HyggeBot1000 implements IBot {
         if (!opponentWinningMoves.isEmpty()) {
             return opponentWinningMoves.getFirst();
         }
-        
-        List<IMove> availableMoves = state.getField().getAvailableMoves();
+
+        List<IMove> closeCorners = getCloseCorners(state);
+        if (!closeCorners.isEmpty()) {
+            Collections.shuffle(closeCorners); // Shuffle the list of close corners
+            return closeCorners.get(0); // Return the first (randomized) close corner
+        }
+
+        // If no close corners are available, try to choose any corner
+        List<IMove> corners = getCorners(state);
+        if (!corners.isEmpty()) {
+            Collections.shuffle(corners); // Shuffle the list of corners
+            return corners.get(0); // Return the first (randomized) corner
+        }
+
+        List<IMove> availableMoves = state.getField().getAvailableMoves(); // Use simulation instead of randomness to make the rest of the moves and peraps replace te above corner method as well
         if (!availableMoves.isEmpty()) {
             return availableMoves.get(random.nextInt(availableMoves.size()));
         }
@@ -62,6 +76,50 @@ public class HyggeBot1000 implements IBot {
                         clonedBoard[startX + 1][startY + 1].equals(clonedBoard[startX + 2][startY])); // Check anti-diagonal
     }
 
+    private List<IMove> getCorners(IGameState state) {
+        List<IMove> avail = state.getField().getAvailableMoves();
+
+        List<IMove> corners = new ArrayList<>();
+        for (IMove move : avail) {
+            if (isCorner(move)) {
+                corners.add(move);
+            }
+        }
+
+        return corners;
+    }
+
+    // Check if a move is a corner move
+    private boolean isCorner(IMove move) {
+        int x = move.getX();
+        int y = move.getY();
+        return (x == 0 || x == 2) && (y == 0 || y == 2);
+    }
+
+    // Get available corner moves that are close to each other
+    private List<IMove> getCloseCorners(IGameState state) {
+        List<IMove> avail = getCorners(state);
+        List<IMove> closeCorners = new ArrayList<>();
+
+        // Calculate Manhattan distance between each pair of corners
+        for (int i = 0; i < avail.size(); i++) {
+            IMove move1 = avail.get(i);
+            for (int j = i + 1; j < avail.size(); j++) {
+                IMove move2 = avail.get(j);
+                if (manhattanDistance(move1, move2) <= 2) { // Define the threshold for closeness
+                    closeCorners.add(move1);
+                    closeCorners.add(move2);
+                }
+            }
+        }
+
+        return closeCorners;
+    }
+
+    // Calculate Manhattan distance between two moves
+    private int manhattanDistance(IMove move1, IMove move2) {
+        return Math.abs(move1.getX() - move2.getX()) + Math.abs(move1.getY() - move2.getY());
+    }
     private String[][] cloneBoard(String[][] board) {
         String[][] clonedBoard = new String[board.length][board[0].length];
         for (int i = 0; i < board.length; i++) {
