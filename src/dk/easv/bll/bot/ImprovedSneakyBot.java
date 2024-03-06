@@ -33,7 +33,6 @@ public class ImprovedSneakyBot implements IBot { // Improve it so it can play as
     private IMove calculateWinningMove(IGameState state, int maxTimeMs) {
         long time = System.currentTimeMillis();
         Random rand = new Random();
-        int count = 0;
         while (System.currentTimeMillis() < time + maxTimeMs) { // check how much time has passed, stop if over maxTimeMs
             GameSimulator simulator = createSimulator(state);
             IGameState gs = simulator.getCurrentState();
@@ -52,12 +51,9 @@ public class ImprovedSneakyBot implements IBot { // Improve it so it can play as
                     bestMove = move;
                 }
             }
-
             if (bestMove != null) {
                 return bestMove;
             }
-
-            count++;
         }
         // Just return random valid move if no clear winning move is found
         List<IMove> moves = state.getField().getAvailableMoves();
@@ -103,50 +99,53 @@ public class ImprovedSneakyBot implements IBot { // Improve it so it can play as
     private int evaluate(GameSimulator simulator) {
         int score = 0;
         String[][] board = simulator.getCurrentState().getField().getBoard();
+        String[][] macroBoard = simulator.getCurrentState().getField().getMacroboard();
+        String hyggeBot = getHyggeBot(simulator.getCurrentState());
+        String opponentBot = getOpponentBot(simulator.getCurrentState());
 
-        // Evaluate each microboard
+        // Evaluate microBoards
         for (int i = 0; i < 9; i += 3) {
             for (int j = 0; j < 9; j += 3) {
                 score += evaluateMicroBoard(board, i, j, simulator);
             }
         }
+
+        // Evaluate macroBoard
+        score += evaluateMacroBoard(macroBoard, hyggeBot, opponentBot, simulator);
+
         return score;
     }
 
-    // Evaluate a single microBoard
-    private int evaluateMicroBoard(String[][] board, int startX, int startY, GameSimulator gameSimulator) {
+    private int evaluateMacroBoard(String[][] macroBoard, String hyggeBot, String opponentBot, GameSimulator simulator) {
         int score = 0;
-
-        // Check rows, columns, and diagonals
-        for (int i = 0; i < 3; i++) {
-            // Check rows
-            if (board[startX + i][startY].equals(board[startX + i][startY + 1]) && board[startX + i][startY + 1].equals(board[startX + i][startY + 2])) {
-                score += scoreForPlayer(board[startX + i][startY], gameSimulator);
-            }
-            // Check columns
-            if (board[startX][startY + i].equals(board[startX + 1][startY + i]) && board[startX + 1][startY + i].equals(board[startX + 2][startY + i])) {
-                score += scoreForPlayer(board[startX][startY + i], gameSimulator);
-            }
-        }
-        // Check diagonals
-        if (board[startX][startY].equals(board[startX + 1][startY + 1]) && board[startX + 1][startY + 1].equals(board[startX + 2][startY + 2])) {
-            score += scoreForPlayer(board[startX][startY], gameSimulator);
-        }
-        if (board[startX + 2][startY].equals(board[startX + 1][startY + 1]) && board[startX + 1][startY + 1].equals(board[startX][startY + 2])) {
-            score += scoreForPlayer(board[startX + 2][startY], gameSimulator);
+        // Check if HyggeBot has won the macroBoard
+        if (simulator.getGameOver() == GameOverState.Win && simulator.getCurrentState().getField().getLastWinner().equals(hyggeBot)) {
+            score += 100; // Winning the macroBoard is highly rewarded
         }
 
-        return score;
+        // Check if Opponent has won the macroBoard
+        if (simulator.getGameOver() == GameOverState.Win && simulator.getCurrentState().getField().getLastWinner().equals(opponentBot)) {
+            score -= 100; // Losing the macroBoard is heavily penalized
+        }
+            return score;
     }
 
-    // Assign scores based on the player controlling the microBoard
-    private int scoreForPlayer(String player, GameSimulator gameSimulator) {
-        if (player.equals(getHyggeBot(gameSimulator.getCurrentState()))) {
-            return 100; // Player 0 controls the microBoard
-        } else if (player.equals(getOpponentBot(gameSimulator.getCurrentState()))) {
-            return -100; // Player 1 controls the microBoard
+    private int evaluateMicroBoard(String[][] board, int startX, int startY, GameSimulator simulator) {
+        int score = 0;
+        String hyggeBot = getHyggeBot(simulator.getCurrentState());
+        String opponentBot = getOpponentBot(simulator.getCurrentState());
+
+        // Evaluate rows, columns, and diagonals
+        for (int i = startX; i < startX + 3; i++) {
+            for (int j = startY; j < startY + 3; j++) {
+                if (board[i][j].equals(hyggeBot)) {
+                    score += 10; // HyggeBot's pieces contribute positively
+                } else if (board[i][j].equals(opponentBot)) {
+                    score -= 10; // Opponent's pieces contribute negatively
+                }
+            }
         }
-        return 0; // The microBoard is empty or tied
+        return score;
     }
 
     private String getHyggeBot(IGameState state) {return state.getMoveNumber() % 2 == 0 ? "0" : "1";}
