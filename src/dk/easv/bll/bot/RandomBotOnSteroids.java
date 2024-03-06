@@ -1,13 +1,9 @@
 package dk.easv.bll.bot;
 
-import dk.easv.bll.bot.IBot;
 import dk.easv.bll.game.IGameState;
 import dk.easv.bll.move.IMove;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class RandomBotOnSteroids implements IBot {
     private static final String BOTNAME = "Random on Steroids";
@@ -17,7 +13,7 @@ public class RandomBotOnSteroids implements IBot {
     public IMove doMove(IGameState state) {
         List<IMove> winMoves = getWinningMoves(state);
         if(!winMoves.isEmpty())
-            return winMoves.get(0);
+            return winMoves.getFirst();
         List<IMove> moves = state.getField().getAvailableMoves();
         if (moves.size() > 0) {
             return moves.get(rand.nextInt(moves.size())); /* get random move from available moves */
@@ -37,26 +33,26 @@ public class RandomBotOnSteroids implements IBot {
         board[move.getX()][move.getY()] = player;
 
         int startX = move.getX()-(move.getX()%3);
-        if(board[startX][move.getY()]==player)
-            if (board[startX][move.getY()] == board[startX+1][move.getY()] &&
-                    board[startX+1][move.getY()] == board[startX+2][move.getY()])
+        if(Objects.equals(board[startX][move.getY()], player))
+            if (Objects.equals(board[startX][move.getY()], board[startX + 1][move.getY()]) &&
+                    Objects.equals(board[startX + 1][move.getY()], board[startX + 2][move.getY()]))
                 return true;
 
         int startY = move.getY()-(move.getY()%3);
-        if(board[move.getX()][startY]==player)
-            if (board[move.getX()][startY] == board[move.getX()][startY+1] &&
-                    board[move.getX()][startY+1] == board[move.getX()][startY+2])
+        if(Objects.equals(board[move.getX()][startY], player))
+            if (Objects.equals(board[move.getX()][startY], board[move.getX()][startY + 1]) &&
+                    Objects.equals(board[move.getX()][startY + 1], board[move.getX()][startY + 2]))
                 return true;
 
 
-        if(board[startX][startY]==player)
-            if (board[startX][startY] == board[startX+1][startY+1] &&
-                    board[startX+1][startY+1] == board[startX+2][startY+2])
+        if(Objects.equals(board[startX][startY], player))
+            if (Objects.equals(board[startX][startY], board[startX + 1][startY + 1]) &&
+                    Objects.equals(board[startX + 1][startY + 1], board[startX + 2][startY + 2]))
                 return true;
 
-        if(board[startX][startY+2]==player)
-            if (board[startX][startY+2] == board[startX+1][startY+1] &&
-                    board[startX+1][startY+1] == board[startX+2][startY])
+        if(Objects.equals(board[startX][startY + 2], player))
+            if (Objects.equals(board[startX][startY + 2], board[startX + 1][startY + 1]) &&
+                    Objects.equals(board[startX + 1][startY + 1], board[startX + 2][startY]))
                 return true;
 
         return false;
