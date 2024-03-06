@@ -27,14 +27,14 @@ public class HyggeBot1000 implements IBot {
         List<IMove> closeCorners = getCloseCorners(state);
         if (!closeCorners.isEmpty()) {
             Collections.shuffle(closeCorners); // Shuffle the list of close corners
-            return closeCorners.get(0); // Return the first (randomized) close corner
+            return closeCorners.getFirst(); // Return the first (randomized) close corner
         }
 
         // If no close corners are available, try to choose any corner
         List<IMove> corners = getCorners(state);
         if (!corners.isEmpty()) {
             Collections.shuffle(corners); // Shuffle the list of corners
-            return corners.get(0); // Return the first (randomized) corner
+            return corners.getFirst(); // Return the first (randomized) corner
         }
 
         List<IMove> availableMoves = state.getField().getAvailableMoves(); // Use simulation instead of randomness to make the rest of the moves and peraps replace te above corner method as well
@@ -120,6 +120,7 @@ public class HyggeBot1000 implements IBot {
     private int manhattanDistance(IMove move1, IMove move2) {
         return Math.abs(move1.getX() - move2.getX()) + Math.abs(move1.getY() - move2.getY());
     }
+
     private String[][] cloneBoard(String[][] board) {
         String[][] clonedBoard = new String[board.length][board[0].length];
         for (int i = 0; i < board.length; i++) {
