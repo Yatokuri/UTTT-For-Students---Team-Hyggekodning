@@ -118,16 +118,20 @@ public class ImprovedSneakyBot implements IBot { // Improve it so it can play as
 
     private int evaluateMacroBoard(String[][] macroBoard, String hyggeBot, String opponentBot, GameSimulator simulator) {
         int score = 0;
+        GameOverState gameOverState = simulator.getGameOver();
+        String lastWinner = null; // Figure out how to find the individual board winner and insert here
+
         // Check if HyggeBot has won the macroBoard
-        if (simulator.getGameOver() == GameOverState.Win && simulator.getCurrentState().getField().getLastWinner().equals(hyggeBot)) {
+        if (gameOverState == GameOverState.Win && lastWinner.equals(hyggeBot)) {
             score += 100; // Winning the macroBoard is highly rewarded
         }
 
         // Check if Opponent has won the macroBoard
-        if (simulator.getGameOver() == GameOverState.Win && simulator.getCurrentState().getField().getLastWinner().equals(opponentBot)) {
+        if (gameOverState == GameOverState.Win && lastWinner.equals(opponentBot)) {
             score -= 100; // Losing the macroBoard is heavily penalized
         }
-            return score;
+
+        return score;
     }
 
     private int evaluateMicroBoard(String[][] board, int startX, int startY, GameSimulator simulator) {
