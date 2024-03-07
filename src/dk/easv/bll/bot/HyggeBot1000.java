@@ -15,45 +15,29 @@ public class HyggeBot1000 implements IBot {
     public IMove doMove(IGameState state) {
         List<IMove> winningMoves = findWinningMoves(state, getHyggeBot(state));
         List<IMove> opponentWinningMoves = findWinningMoves(state, getOpponentBot(state));
-
-        if (!winningMoves.isEmpty()) {
-            return winningMoves.get(random.nextInt(winningMoves.size()));
-        }
-
-        if (!opponentWinningMoves.isEmpty()) {
-            return opponentWinningMoves.getFirst();
-        }
-
         List<IMove> closeCorners = getCloseCorners(state);
+        List<IMove> corners = getCorners(state);
+        List<IMove> availableMoves = state.getField().getAvailableMoves();
+
+        if (!winningMoves.isEmpty()) { return winningMoves.get(random.nextInt(winningMoves.size())); }
+        if (!opponentWinningMoves.isEmpty()) { return opponentWinningMoves.getFirst(); }
         if (!closeCorners.isEmpty()) {
             Collections.shuffle(closeCorners); // Shuffle the list of close corners
             return closeCorners.getFirst(); // Return the first (randomized) close corner
         }
-
         // If no close corners are available, try to choose any corner
-        List<IMove> corners = getCorners(state);
         if (!corners.isEmpty()) {
             Collections.shuffle(corners); // Shuffle the list of corners
             return corners.getFirst(); // Return the first (randomized) corner
         }
-
-        List<IMove> availableMoves = state.getField().getAvailableMoves(); // Use simulation instead of randomness to make the rest of the moves and peraps replace te above corner method as well
-        if (!availableMoves.isEmpty()) {
-            return availableMoves.get(random.nextInt(availableMoves.size()));
-        }
-
+        if (!availableMoves.isEmpty()) { return availableMoves.get(random.nextInt(availableMoves.size())); }
         return null;
     }
 
     private List<IMove> findWinningMoves(IGameState state, String player) {
         List<IMove> availableMoves = state.getField().getAvailableMoves();
         List<IMove> winningMoves = new ArrayList<>();
-
-        for (IMove move : availableMoves) {
-            if (isWinningMove(state, move, player)) {
-                winningMoves.add(move);
-            }
-        }
+        for (IMove move : availableMoves) { if (isWinningMove(state, move, player)) {winningMoves.add(move);} }
         return winningMoves;
     }
 
@@ -62,7 +46,6 @@ public class HyggeBot1000 implements IBot {
         int x = move.getX();
         int y = move.getY();
         clonedBoard[x][y] = player;
-
         int startX = x - (x % 3);
         int startY = y - (y % 3);
 
@@ -78,14 +61,8 @@ public class HyggeBot1000 implements IBot {
 
     private List<IMove> getCorners(IGameState state) {
         List<IMove> avail = state.getField().getAvailableMoves();
-
         List<IMove> corners = new ArrayList<>();
-        for (IMove move : avail) {
-            if (isCorner(move)) {
-                corners.add(move);
-            }
-        }
-
+        for (IMove move : avail) {if (isCorner(move)) {corners.add(move);}}
         return corners;
     }
 
@@ -112,7 +89,6 @@ public class HyggeBot1000 implements IBot {
                 }
             }
         }
-
         return closeCorners;
     }
 
@@ -123,9 +99,7 @@ public class HyggeBot1000 implements IBot {
 
     private String[][] cloneBoard(String[][] board) {
         String[][] clonedBoard = new String[board.length][board[0].length];
-        for (int i = 0; i < board.length; i++) {
-            clonedBoard[i] = board[i].clone();
-        }
+        for (int i = 0; i < board.length; i++) { clonedBoard[i] = board[i].clone(); }
         return clonedBoard;
     }
     private String getHyggeBot(IGameState state) {return state.getMoveNumber() % 2 == 0 ? "0" : "1";}
