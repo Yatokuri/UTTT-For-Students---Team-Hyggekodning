@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
-public class MyName implements IBot { // Improve it so it can play as player 2, currently it cannot figure it out
+public class HyggeBot implements IBot {
 
     final int maxTimeMs = 980;
     private Random random = new Random();
@@ -33,49 +33,32 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
     public IMove doMove(IGameState state) {
         String hyggeBot = getHyggeBot(state);
         String opponentBot = getOpponentBot(state);
-
         List<IMove> winningMoves = findWinningMoves(state, hyggeBot);
-
         // Check if there are winning moves available
-        if (!winningMoves.isEmpty()) {
-            // Randomly select one of the winning moves
-            return winningMoves.get(random.nextInt(winningMoves.size()));
-        }
-
+        if (!winningMoves.isEmpty()) {return winningMoves.get(random.nextInt(winningMoves.size()));}
         // If there are no winning moves, calculate the next move using your normal logic
         return calculateWinningMove(state, hyggeBot, opponentBot);
     }
-
 
     // Plays single games until it wins and returns the first move for that. If iterations reached with no clear win, just return random valid move
     private IMove calculateWinningMove(IGameState state, String hyggeBot, String opponentBot) {
         time = System.currentTimeMillis();
         Random rand = new Random();
         IMove bestMove = null;
-
-        if (state.getField().getBoard()[4][4].equals(IField.EMPTY_FIELD) && state.getField().isEmpty()) {
             // Place move in the center if it's empty
-            return new Move(4, 4);
-        }
-
+        if (state.getField().getBoard()[4][4].equals(IField.EMPTY_FIELD) && state.getField().isEmpty()) { return new Move(4, 4); }
         while (System.currentTimeMillis() < time + maxTimeMs) { // check how much time has passed, stop if over maxTimeMs
             GameSimulator simulator = createSimulator(state);
             IGameState gs = simulator.getCurrentState();
             List<IMove> moves = gs.getField().getAvailableMoves();
-
             // Perform minimax with alpha-beta pruning
-
             int alpha = Integer.MIN_VALUE;
             int beta = Integer.MAX_VALUE;
             for (IMove move : moves) {
                 if (System.currentTimeMillis() > time + maxTimeMs) {
-                    if (bestMove != null) {
-                        return bestMove;
-                    }
-                    System.out.println("Tog helt tilfældig trak");
+                    if (bestMove != null) { return bestMove; }
                     return moves.get(rand.nextInt(moves.size()));
                 }
-
                 GameSimulator childSimulator = createSimulator(state);
                 childSimulator.updateGame(move);
                 int score = minimax(childSimulator, 0, false, alpha, beta, hyggeBot, opponentBot, state.getMoveNumber() % 2);
@@ -84,104 +67,71 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
                     bestMove = move;
                 }
             }
-            if (bestMove != null) {
-                return bestMove;
-            }
+            if (bestMove != null) { return bestMove; }
         }
-
         // Just return random valid move if no clear winning move is found
         List<IMove> moves = state.getField().getAvailableMoves();
         return moves.get(rand.nextInt(moves.size()));
     }
 
     private int minimax(GameSimulator simulator, int depth, boolean maximizingPlayer, int alpha, int beta, String hyggeBot, String opponentBot, int currentPlayer) {
-        if (depth == MAX_DEPTH || simulator.getGameOver() != GameOverState.Active) {
-            // Return evaluation score
-            return evaluate(simulator, hyggeBot, opponentBot);
-        }
-
+        if (depth == MAX_DEPTH || simulator.getGameOver() != GameOverState.Active) { return evaluate(simulator, hyggeBot, opponentBot); }
         List<IMove> moves = simulator.getCurrentState().getField().getAvailableMoves();
         if (maximizingPlayer) {
             int maxEval = Integer.MIN_VALUE;
             for (IMove move : moves) {
-
-                if (System.currentTimeMillis() > time + maxTimeMs) {
-                    return maxEval;
-                }
-
+                if (System.currentTimeMillis() > time + maxTimeMs) { return maxEval; }
                 GameSimulator childSimulator = createSimulator(simulator.getCurrentState());
                 childSimulator.updateGame(move);
                 int eval = minimax(childSimulator, depth + 1, false, alpha, beta, hyggeBot, opponentBot, currentPlayer);
                 maxEval = Math.max(maxEval, eval);
                 alpha = Math.max(alpha, eval);
-                if (beta <= alpha) {
-                    break;
-                }
+                if (beta <= alpha) { break; }
             }
             return maxEval;
         } else {
             int minEval = Integer.MAX_VALUE;
             for (IMove move : moves) {
-
-                if (System.currentTimeMillis() > time + maxTimeMs) {
-                    return minEval;
-                }
-
+                if (System.currentTimeMillis() > time + maxTimeMs) { return minEval; }
                 GameSimulator childSimulator = createSimulator(simulator.getCurrentState());
                 childSimulator.updateGame(move);
                 int eval = minimax(childSimulator, depth + 1, true, alpha, beta, hyggeBot, opponentBot, currentPlayer);
                 minEval = Math.min(minEval, eval);
                 beta = Math.min(beta, eval);
-                if (beta <= alpha) {
-                    break;
-                }
+                if (beta <= alpha) { break; }
             }
             return minEval;
         }
     }
-
-    //ONLY CHANGE DOWN HERE
 
     private int evaluate(GameSimulator simulator, String hyggeBot, String opponentBot) {
         int score = 0;
         IGameState currentState = simulator.getCurrentState();
         String[][] board = currentState.getField().getBoard();
         String[][] macroboard = currentState.getField().getMacroboard();
-
-        // Evaluate each microboard
+        // Evaluate each microBoard
         for (int i = 0; i < 9; i += 3) {
             for (int j = 0; j < 9; j += 3) {
                 score += evaluateMicroBoard(board, macroboard, i, j, hyggeBot, opponentBot);
             }
         }
 
-        // Consider the status of the macroboard
+        // Consider the status of the macroBoard
         score += evaluateMacroboard(macroboard, hyggeBot, opponentBot);
 
         // Prioritize preventing the opponent from winning the game
         score += evaluatePreventiveMoves(board, macroboard, hyggeBot, opponentBot);
-
         // Prioritize checking if HyggeBot can win on the next move
-        if (isHyggeBotWinningNextMove(macroboard, hyggeBot)) {
-            score += 200; // Give a high bonus if HyggeBot can win on the next move
-        }
-
+        if (isHyggeBotWinningNextMove(macroboard, hyggeBot)) {score += 200; } // Give a high bonus if HyggeBot can win on the next move
         // Prioritize checking if the opponent can win on the next move
-        if (isOpponentWinningNextMove(macroboard, opponentBot)) {
-            score -= 200; // Give a high penalty if the opponent can win on the next move
-        }
-
-        // Prioritize checking if the opponent can win the macroboard on the next move
-        if (isOpponentWinningMacroboardNextMove(macroboard, opponentBot)) {
-            score -= 10000; // Give a high penalty if the opponent can win the macroboard on the next move
-        }
-
+        if (isOpponentWinningNextMove(macroboard, opponentBot)) { score -= 200;} // Give a high penalty if the opponent can win on the next move
+        // Prioritize checking if the opponent can win the macroBoard on the next move
+        if (isOpponentWinningMacroboardNextMove(macroboard, opponentBot)) { score -= 10000; } // Give a high penalty if the opponent can win the macroboard on the next move
         return score;
     }
 
     private static int evaluateMicroBoard(String[][] board, String[][] macroboard, int startX, int startY, String hyggeBot, String opponentBot) {
         int score = 0;
-
         // Check rows, columns, and diagonals
         for (int i = 0; i < 3; i++) {
             // Check rows
@@ -205,16 +155,12 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         if (macroboard[startX / 3][startY / 3].equals(IField.AVAILABLE_FIELD)) {
             score -= 20; // Decrease score for microboards in available macroboards
         }
-
         return score;
     }
 
     private static int scoreForPlayer(String player, String hyggeBot, String opponentBot) {
-        if (player.equals(hyggeBot)) {
-            return 10; // HyggeBot controls the microboard
-        } else if (player.equals(opponentBot)) {
-            return -10; // Opponent controls the microboard
-        }
+        if (player.equals(hyggeBot)) { return 10; } // HyggeBot controls the microboard
+        else if (player.equals(opponentBot)) { return -10; } // Opponent controls the microboard
         return 0; // The microboard is empty or tied
     }
 
@@ -222,11 +168,8 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         int score = 0;
         for (String[] row : macroboard) {
             for (String cell : row) {
-                if (cell.equals(hyggeBot)) {
-                    score += 100; // HyggeBot has control over the macroboard
-                } else if (cell.equals(opponentBot)) {
-                    score -= 100; // Opponent has control over the macroboard
-                }
+                if (cell.equals(hyggeBot)) { score += 100; } // HyggeBot has control over the macroboard
+                else if (cell.equals(opponentBot)) { score -= 100; } // Opponent has control over the macroboard
             }
         }
         return score;
@@ -234,7 +177,6 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
 
     private static int evaluatePreventiveMoves(String[][] board, String[][] macroboard, String hyggeBot, String opponentBot) {
         int preventiveScore = 0;
-
         // Consider blocking opponent's winning moves in microboards
         for (int i = 0; i < 9; i += 3) {
             for (int j = 0; j < 9; j += 3) {
@@ -266,11 +208,7 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
     private boolean isOpponentWinningNextMove(String[][] macroboard, String opponentBot) {
         // Check if the opponent is winning the game on the next move
         for (String[] row : macroboard) {
-            for (String cell : row) {
-                if (cell.equals(opponentBot)) {
-                    return true; // Opponent is winning the game
-                }
-            }
+            for (String cell : row) { if (cell.equals(opponentBot)) { return true; }} // Opponent is winning the game
         }
         return false;
     }
@@ -280,11 +218,7 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
     private boolean isHyggeBotWinningNextMove(String[][] macroboard, String hyggeBot) {
         // Check if HyggeBot is winning the game on the next move
         for (String[] row : macroboard) {
-            for (String cell : row) {
-                if (cell.equals(hyggeBot)) {
-                    return true; // HyggeBot is winning the game
-                }
-            }
+            for (String cell : row) { if (cell.equals(hyggeBot)) { return true; }} // HyggeBot is winning the game
         }
         return false;
     }
@@ -312,10 +246,6 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         return false;
     }
 
-
-
-
-
     private String getHyggeBot(IGameState state) {return state.getMoveNumber() % 2 == 0 ? "0" : "1";}
 
     private String getOpponentBot(IGameState state) {return getHyggeBot(state).equals("0") ? "1" : "0";}
@@ -324,12 +254,7 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
     private List<IMove> findWinningMoves(IGameState state, String player) {
         List<IMove> availableMoves = state.getField().getAvailableMoves();
         List<IMove> winningMoves = new ArrayList<>();
-
-        for (IMove move : availableMoves) {
-            if (isWinningMove(state, move, player)) {
-                winningMoves.add(move);
-            }
-        }
+        for (IMove move : availableMoves) { if (isWinningMove(state, move, player)) { winningMoves.add(move); }}
         return winningMoves;
     }
 
@@ -354,59 +279,19 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
 
     private String[][] cloneBoard(String[][] board) {
         String[][] clonedBoard = new String[board.length][board[0].length];
-        for (int i = 0; i < board.length; i++) {
-            clonedBoard[i] = board[i].clone();
-        }
+        for (int i = 0; i < board.length; i++) { clonedBoard[i] = board[i].clone(); }
         return clonedBoard;
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     /*
         The code below is a simulator for simulation of gameplay. This is needed for AI.
-
         It is put here to make the Bot independent of the GameManager and its subclasses/enums
-
         Now this class is only dependent on a few interfaces: IMove, IField, and IGameState
-
         You could say it is self-contained. The drawback is that if the game rules change, the simulator must be
         changed accordingly, making the code redundant.
-
      */
-
-
     @Override
-    public String getBotName() {
-        return BOT_NAME;
-    }
+    public String getBotName() {return BOT_NAME;}
 
     public enum GameOverState {
         Active,
@@ -424,19 +309,13 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         }
 
         @Override
-        public int getX() {
-            return x;
-        }
+        public int getX() { return x; }
 
         @Override
-        public int getY() {
-            return y;
-        }
+        public int getY() { return y; }
 
         @Override
-        public String toString() {
-            return "(" + x + "," + y + ")";
-        }
+        public String toString() { return "(" + x + "," + y + ")"; }
 
         @Override
         public boolean equals(Object o) {
@@ -447,9 +326,7 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         }
 
         @Override
-        public int hashCode() {
-            return Objects.hash(x, y);
-        }
+        public int hashCode() { return Objects.hash(x, y); }
     }
 
     class GameSimulator {
@@ -457,33 +334,21 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         private int currentPlayer = 0; //player0 == 0 && player1 == 1
         private volatile GameOverState gameOver = GameOverState.Active;
 
-        public void setGameOver(GameOverState state) {
-            gameOver = state;
-        }
+        public void setGameOver(GameOverState state) { gameOver = state; }
 
-        public GameOverState getGameOver() {
-            return gameOver;
-        }
+        public GameOverState getGameOver() { return gameOver; }
 
-        public void setCurrentPlayer(int player) {
-            currentPlayer = player;
-        }
+        public void setCurrentPlayer(int player) { currentPlayer = player; }
 
-        public IGameState getCurrentState() {
-            return currentState;
-        }
+        public IGameState getCurrentState() { return currentState; }
 
-        public GameSimulator(IGameState currentState) {
-            this.currentState = currentState;
-        }
+        public GameSimulator(IGameState currentState) { this.currentState = currentState; }
 
         public Boolean updateGame(IMove move) {
             if (!verifyMoveLegality(move))
                 return false;
-
             updateBoard(move);
             currentPlayer = (currentPlayer + 1) % 2;
-
             return true;
         }
 
@@ -504,12 +369,9 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
             String[][] board = currentState.getField().getBoard();
             board[move.getX()][move.getY()] = currentPlayer + "";
             currentState.setMoveNumber(currentState.getMoveNumber() + 1);
-            if (currentState.getMoveNumber() % 2 == 0) {
-                currentState.setRoundNumber(currentState.getRoundNumber() + 1);
-            }
+            if (currentState.getMoveNumber() % 2 == 0) { currentState.setRoundNumber(currentState.getRoundNumber() + 1); }
             checkAndUpdateIfWin(move);
             updateMacroboard(move);
-
         }
 
         private void checkAndUpdateIfWin(IMove move) {
@@ -551,7 +413,6 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
             }
             return true;
         }
-
 
         public boolean isWin(String[][] board, IMove move, String currentPlayer) {
             int localX = move.getX() % 3;
@@ -642,42 +503,24 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         }
 
         @Override
-        public IField getField() {
-            return field;
-        }
+        public IField getField() { return field; }
 
         @Override
-        public int getMoveNumber() {
-            return moveNumber;
-        }
+        public int getMoveNumber() { return moveNumber; }
 
         @Override
-        public void setMoveNumber(int moveNumber) {
-            this.moveNumber=moveNumber;
-        }
+        public void setMoveNumber(int moveNumber) { this.moveNumber=moveNumber; }
 
         @Override
-        public int getRoundNumber() {
-            return roundNumber;
-        }
+        public int getRoundNumber() { return roundNumber; }
 
         @Override
-        public void setRoundNumber(int roundNumber) {
-            this.roundNumber = roundNumber;
-        }
+        public void setRoundNumber(int roundNumber) { this.roundNumber = roundNumber; }
 
         @Override
-        public int getTimePerMove()
-        {
-            return this.timePerMove;
-        }
+        public int getTimePerMove() { return this.timePerMove; }
 
         @Override
-        public void setTimePerMove(int milliSeconds)
-        {
-            this.timePerMove = milliSeconds;
-        }
+        public void setTimePerMove(int milliSeconds) { this.timePerMove = milliSeconds;}
     }
-
-
 }
