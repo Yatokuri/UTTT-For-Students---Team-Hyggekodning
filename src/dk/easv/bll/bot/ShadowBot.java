@@ -21,7 +21,13 @@ public class ShadowBot implements IBot {
             return winMoves.get(0);
         }
 
-        // If there are no winning moves, try to choose corners close to each other
+        // Block opponent's winning moves
+        List<IMove> blockMoves = getBlockingMoves(state);
+        if (!blockMoves.isEmpty()) {
+            return blockMoves.get(0);
+        }
+
+        // If there are no winning moves or blocking moves, try to choose corners close to each other
         List<IMove> closeCorners = getCloseCorners(state);
         if (!closeCorners.isEmpty()) {
             Collections.shuffle(closeCorners); // Shuffle the list of close corners
@@ -118,6 +124,33 @@ public class ShadowBot implements IBot {
             }
         }
         return winningMoves;
+    }
+
+    // Check if a move is opponent's winning
+    private boolean isOpponentWinningMove(IGameState state, IMove move, String opponent) {
+        String player = "1";
+        if (opponent.equals("1")) {
+            player = "0";
+        }
+        return isWinningMove(state, move, player);
+    }
+
+    // Get available moves to block opponent's winning moves
+    private List<IMove> getBlockingMoves(IGameState state) {
+        String opponent = "1";
+        if (state.getMoveNumber() % 2 == 0) {
+            opponent = "0";
+        }
+
+        List<IMove> avail = state.getField().getAvailableMoves();
+
+        List<IMove> blockingMoves = new ArrayList<>();
+        for (IMove move : avail) {
+            if (isOpponentWinningMove(state, move, opponent)) {
+                blockingMoves.add(move);
+            }
+        }
+        return blockingMoves;
     }
 
     @Override
