@@ -34,8 +34,6 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         String hyggeBot = getHyggeBot(state);
         String opponentBot = getOpponentBot(state);
 
-        System.out.println("Du spiller som" + hyggeBot);
-
         List<IMove> winningMoves = findWinningMoves(state, hyggeBot);
 
         // Check if there are winning moves available
@@ -165,12 +163,12 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
 
         // Prioritize checking if HyggeBot can win on the next move
         if (isHyggeBotWinningNextMove(macroboard, hyggeBot)) {
-            score += 600; // Give a high bonus if HyggeBot can win on the next move
+            score += 200; // Give a high bonus if HyggeBot can win on the next move
         }
 
         // Prioritize checking if the opponent can win on the next move
         if (isOpponentWinningNextMove(macroboard, opponentBot)) {
-            score -= 550; // Give a high penalty if the opponent can win on the next move
+            score -= 200; // Give a high penalty if the opponent can win on the next move
         }
 
         // Prioritize checking if the opponent can win the macroboard on the next move
@@ -321,7 +319,7 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
     private String getHyggeBot(IGameState state) {return state.getMoveNumber() % 2 == 0 ? "0" : "1";}
 
     private String getOpponentBot(IGameState state) {return getHyggeBot(state).equals("0") ? "1" : "0";}
-    private static final int MAX_DEPTH = 20 ; // Adjust this depth according to your requirements
+    private static final int MAX_DEPTH = 5 ; // Adjust this depth according to your requirements
 
     private List<IMove> findWinningMoves(IGameState state, String player) {
         List<IMove> availableMoves = state.getField().getAvailableMoves();
