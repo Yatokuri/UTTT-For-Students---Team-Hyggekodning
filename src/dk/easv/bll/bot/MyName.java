@@ -31,31 +31,34 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
 
     @Override
     public IMove doMove(IGameState state) {
-        List<IMove> winningMoves = findWinningMoves(state, getHyggeBot(state));
+        String hyggeBot = getHyggeBot(state);
+        String opponentBot = getOpponentBot(state);
 
-        // Check if there is a way to win the entire game
-        boolean canWinGame = !winningMoves.isEmpty() && state.getField().getAvailableMoves().size() <= 1;
-        if (canWinGame) {
-            System.out.println("jeg vinder");
-            return winningMoves.get(0); // Return the winning move
+        System.out.println("Du spiller som" + hyggeBot);
+
+        List<IMove> winningMoves = findWinningMoves(state, hyggeBot);
+
+        // Check if there are winning moves available
+        if (!winningMoves.isEmpty()) {
+            // Randomly select one of the winning moves
+            return winningMoves.get(random.nextInt(winningMoves.size()));
         }
 
-        // Calculate the next move
-        return calculateWinningMove(state);
+        // If there are no winning moves, calculate the next move using your normal logic
+        return calculateWinningMove(state, hyggeBot, opponentBot);
     }
 
+
     // Plays single games until it wins and returns the first move for that. If iterations reached with no clear win, just return random valid move
-    private IMove calculateWinningMove(IGameState state) {
+    private IMove calculateWinningMove(IGameState state, String hyggeBot, String opponentBot) {
         time = System.currentTimeMillis();
         Random rand = new Random();
         IMove bestMove = null;
-
 
         if (state.getField().getBoard()[4][4].equals(IField.EMPTY_FIELD) && state.getField().isEmpty()) {
             // Place move in the center if it's empty
             return new Move(4, 4);
         }
-
 
         while (System.currentTimeMillis() < time + maxTimeMs) { // check how much time has passed, stop if over maxTimeMs
             GameSimulator simulator = createSimulator(state);
@@ -67,16 +70,17 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
             int alpha = Integer.MIN_VALUE;
             int beta = Integer.MAX_VALUE;
             for (IMove move : moves) {
-                if (System.currentTimeMillis() > time + maxTimeMs)  {
+                if (System.currentTimeMillis() > time + maxTimeMs) {
                     if (bestMove != null) {
                         return bestMove;
                     }
+                    System.out.println("Tog helt tilfældig trak");
                     return moves.get(rand.nextInt(moves.size()));
                 }
 
                 GameSimulator childSimulator = createSimulator(state);
                 childSimulator.updateGame(move);
-                int score = minimax(childSimulator, 0, false, alpha, beta);
+                int score = minimax(childSimulator, 0, false, alpha, beta, hyggeBot, opponentBot, state.getMoveNumber() % 2);
                 if (score > alpha) {
                     alpha = score;
                     bestMove = move;
@@ -87,16 +91,15 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
             }
         }
 
-
         // Just return random valid move if no clear winning move is found
         List<IMove> moves = state.getField().getAvailableMoves();
         return moves.get(rand.nextInt(moves.size()));
     }
 
-    private int minimax(GameSimulator simulator, int depth, boolean maximizingPlayer, int alpha, int beta) {
+    private int minimax(GameSimulator simulator, int depth, boolean maximizingPlayer, int alpha, int beta, String hyggeBot, String opponentBot, int currentPlayer) {
         if (depth == MAX_DEPTH || simulator.getGameOver() != GameOverState.Active) {
             // Return evaluation score
-            return evaluate(simulator);
+            return evaluate(simulator, hyggeBot, opponentBot);
         }
 
         List<IMove> moves = simulator.getCurrentState().getField().getAvailableMoves();
@@ -104,14 +107,13 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
             int maxEval = Integer.MIN_VALUE;
             for (IMove move : moves) {
 
-
-                if (System.currentTimeMillis() > time + maxTimeMs)  {
+                if (System.currentTimeMillis() > time + maxTimeMs) {
                     return maxEval;
                 }
 
                 GameSimulator childSimulator = createSimulator(simulator.getCurrentState());
                 childSimulator.updateGame(move);
-                int eval = minimax(childSimulator, depth + 1, false, alpha, beta);
+                int eval = minimax(childSimulator, depth + 1, false, alpha, beta, hyggeBot, opponentBot, currentPlayer);
                 maxEval = Math.max(maxEval, eval);
                 alpha = Math.max(alpha, eval);
                 if (beta <= alpha) {
@@ -123,13 +125,13 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
             int minEval = Integer.MAX_VALUE;
             for (IMove move : moves) {
 
-                if (System.currentTimeMillis() > time + maxTimeMs)  {
+                if (System.currentTimeMillis() > time + maxTimeMs) {
                     return minEval;
                 }
 
                 GameSimulator childSimulator = createSimulator(simulator.getCurrentState());
                 childSimulator.updateGame(move);
-                int eval = minimax(childSimulator, depth + 1, true, alpha, beta);
+                int eval = minimax(childSimulator, depth + 1, true, alpha, beta, hyggeBot, opponentBot, currentPlayer);
                 minEval = Math.min(minEval, eval);
                 beta = Math.min(beta, eval);
                 if (beta <= alpha) {
@@ -140,13 +142,13 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         }
     }
 
-    private int evaluate(GameSimulator simulator) {
+    //ONLY CHANGE DOWN HERE
+
+    private int evaluate(GameSimulator simulator, String hyggeBot, String opponentBot) {
         int score = 0;
         IGameState currentState = simulator.getCurrentState();
         String[][] board = currentState.getField().getBoard();
         String[][] macroboard = currentState.getField().getMacroboard();
-        String hyggeBot = getHyggeBot(currentState);
-        String opponentBot = getOpponentBot(currentState);
 
         // Evaluate each microboard
         for (int i = 0; i < 9; i += 3) {
@@ -161,12 +163,25 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         // Prioritize preventing the opponent from winning the game
         score += evaluatePreventiveMoves(board, macroboard, hyggeBot, opponentBot);
 
-        // Simulate opponent moves and adjust score accordingly
+        // Prioritize checking if HyggeBot can win on the next move
+        if (isHyggeBotWinningNextMove(macroboard, hyggeBot)) {
+            score += 600; // Give a high bonus if HyggeBot can win on the next move
+        }
+
+        // Prioritize checking if the opponent can win on the next move
+        if (isOpponentWinningNextMove(macroboard, opponentBot)) {
+            score -= 550; // Give a high penalty if the opponent can win on the next move
+        }
+
+        // Prioritize checking if the opponent can win the macroboard on the next move
+        if (isOpponentWinningMacroboardNextMove(macroboard, opponentBot)) {
+            score -= 10000; // Give a high penalty if the opponent can win the macroboard on the next move
+        }
 
         return score;
     }
 
-    private int evaluateMicroBoard(String[][] board, String[][] macroboard, int startX, int startY, String hyggeBot, String opponentBot) {
+    private static int evaluateMicroBoard(String[][] board, String[][] macroboard, int startX, int startY, String hyggeBot, String opponentBot) {
         int score = 0;
 
         // Check rows, columns, and diagonals
@@ -196,7 +211,7 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         return score;
     }
 
-    private int scoreForPlayer(String player, String hyggeBot, String opponentBot) {
+    private static int scoreForPlayer(String player, String hyggeBot, String opponentBot) {
         if (player.equals(hyggeBot)) {
             return 10; // HyggeBot controls the microboard
         } else if (player.equals(opponentBot)) {
@@ -205,7 +220,7 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         return 0; // The microboard is empty or tied
     }
 
-    private int evaluateMacroboard(String[][] macroboard, String hyggeBot, String opponentBot) {
+    private static int evaluateMacroboard(String[][] macroboard, String hyggeBot, String opponentBot) {
         int score = 0;
         for (String[] row : macroboard) {
             for (String cell : row) {
@@ -219,40 +234,94 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         return score;
     }
 
+    private static int evaluatePreventiveMoves(String[][] board, String[][] macroboard, String hyggeBot, String opponentBot) {
+        int preventiveScore = 0;
 
-        private int evaluatePreventiveMoves(String[][] board, String[][] macroboard, String hyggeBot, String opponentBot) {
-            int preventiveScore = 0;
-
-            // Consider blocking opponent's winning moves in microboards
-            for (int i = 0; i < 9; i += 3) {
-                for (int j = 0; j < 9; j += 3) {
-                    // Check rows
-                    if (board[i][j].equals(opponentBot) && board[i][j + 1].equals(opponentBot) && board[i][j + 2].equals(IField.EMPTY_FIELD)) {
-                        preventiveScore -= 50; // Block opponent's winning move in the row
+        // Consider blocking opponent's winning moves in microboards
+        for (int i = 0; i < 9; i += 3) {
+            for (int j = 0; j < 9; j += 3) {
+                // Check rows
+                if (board[i][j].equals(opponentBot) && board[i][j + 1].equals(opponentBot) && board[i][j + 2].equals(IField.EMPTY_FIELD)) {
+                    preventiveScore += 100; // Give a high score for blocking opponent's winning move in the row
+                }
+                // Check columns
+                if (board[i][j].equals(opponentBot) && board[i + 1][j].equals(opponentBot) && board[i + 2][j].equals(IField.EMPTY_FIELD)) {
+                    preventiveScore += 100; // Give a high score for blocking opponent's winning move in the column
+                }
+                // Check diagonal
+                if ((i == 0 && j == 0) || (i == 3 && j == 3) || (i == 6 && j == 6)) {
+                    if (board[i][j].equals(opponentBot) && board[i + 1][j + 1].equals(opponentBot) && board[i + 2][j + 2].equals(IField.EMPTY_FIELD)) {
+                        preventiveScore += 100; // Give a high score for blocking opponent's winning move in the diagonal
                     }
-                    // Check columns
-                    if (board[i][j].equals(opponentBot) && board[i + 1][j].equals(opponentBot) && board[i + 2][j].equals(IField.EMPTY_FIELD)) {
-                        preventiveScore -= 50; // Block opponent's winning move in the column
+                }
+                // Check anti-diagonal
+                if ((i == 0 && j == 6) || (i == 3 && j == 3) || (i == 6 && j == 0)) {
+                    if (board[i][j + 2].equals(opponentBot) && board[i + 1][j + 1].equals(opponentBot) && board[i + 2][j].equals(IField.EMPTY_FIELD)) {
+                        preventiveScore += 100; // Give a high score for blocking opponent's winning move in the anti-diagonal
                     }
-                    // Check diagonal
-                    if (i == 0 && j == 0 || i == 3 && j == 3 || i == 6 && j == 6) {
-                        if (board[i][j].equals(opponentBot) && board[i + 1][j + 1].equals(opponentBot) && board[i + 2][j + 2].equals(IField.EMPTY_FIELD)) {
-                            preventiveScore -= 50; // Block opponent's winning move in the diagonal
-                        }
-                    }
-                    // Add more conditions to block opponent's winning moves in other directions
                 }
             }
-
-            return preventiveScore;
         }
+        return preventiveScore;
+    }
+
+    private boolean isOpponentWinningNextMove(String[][] macroboard, String opponentBot) {
+        // Check if the opponent is winning the game on the next move
+        for (String[] row : macroboard) {
+            for (String cell : row) {
+                if (cell.equals(opponentBot)) {
+                    return true; // Opponent is winning the game
+                }
+            }
+        }
+        return false;
+    }
+
+
+
+    private boolean isHyggeBotWinningNextMove(String[][] macroboard, String hyggeBot) {
+        // Check if HyggeBot is winning the game on the next move
+        for (String[] row : macroboard) {
+            for (String cell : row) {
+                if (cell.equals(hyggeBot)) {
+                    return true; // HyggeBot is winning the game
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isOpponentWinningMacroboardNextMove(String[][] macroboard, String opponentBot) {
+        // Check rows
+        for (int i = 0; i < 3; i++) {
+            if (macroboard[i][0].equals(opponentBot) && macroboard[i][1].equals(opponentBot) && macroboard[i][2].equals(opponentBot)) {
+                return true;
+            }
+        }
+        // Check columns
+        for (int i = 0; i < 3; i++) {
+            if (macroboard[0][i].equals(opponentBot) && macroboard[1][i].equals(opponentBot) && macroboard[2][i].equals(opponentBot)) {
+                return true;
+            }
+        }
+        // Check diagonals
+        if (macroboard[0][0].equals(opponentBot) && macroboard[1][1].equals(opponentBot) && macroboard[2][2].equals(opponentBot)) {
+            return true;
+        }
+        if (macroboard[0][2].equals(opponentBot) && macroboard[1][1].equals(opponentBot) && macroboard[2][0].equals(opponentBot)) {
+            return true;
+        }
+        return false;
+    }
+
+
 
 
 
     private String getHyggeBot(IGameState state) {return state.getMoveNumber() % 2 == 0 ? "0" : "1";}
 
     private String getOpponentBot(IGameState state) {return getHyggeBot(state).equals("0") ? "1" : "0";}
-    private static final int MAX_DEPTH = 10; // Adjust this depth according to your requirements
+    private static final int MAX_DEPTH = 20 ; // Adjust this depth according to your requirements
 
     private List<IMove> findWinningMoves(IGameState state, String player) {
         List<IMove> availableMoves = state.getField().getAvailableMoves();
@@ -292,6 +361,36 @@ public class MyName implements IBot { // Improve it so it can play as player 2, 
         }
         return clonedBoard;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     /*
         The code below is a simulator for simulation of gameplay. This is needed for AI.
