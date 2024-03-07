@@ -1,6 +1,5 @@
 package dk.easv.bll.bot;
 
-import dk.easv.bll.bot.IBot;
 import dk.easv.bll.game.IGameState;
 import dk.easv.bll.move.IMove;
 
@@ -77,7 +76,7 @@ public class ShadowBot implements IBot {
             IMove move1 = avail.get(i);
             for (int j = i + 1; j < avail.size(); j++) {
                 IMove move2 = avail.get(j);
-                if (manhattanDistance(move1, move2) <= 2) { // Define the threshold for closeness
+                if (isOuterCorner(move1) && isOuterCorner(move2) && manhattanDistance(move1, move2) <= 2) { // Check if both moves are outer corners
                     closeCorners.add(move1);
                     closeCorners.add(move2);
                 }
@@ -85,6 +84,16 @@ public class ShadowBot implements IBot {
         }
 
         return closeCorners;
+    }
+
+    // Check if a move is an outer corner move
+    private boolean isOuterCorner(IMove move) {
+        int x = move.getX();
+        int y = move.getY();
+        return (x == 0 && y == 0) || // Top-left corner
+                (x == 0 && y == 2) || // Top-right corner
+                (x == 2 && y == 0) || // Bottom-left corner
+                (x == 2 && y == 2);   // Bottom-right corner
     }
 
     // Calculate Manhattan distance between two moves
@@ -158,3 +167,4 @@ public class ShadowBot implements IBot {
         return BOTNAME;
     }
 }
+
